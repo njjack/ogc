@@ -1,11 +1,14 @@
 #ifndef GC_INTERNAL_H
 #define GC_INTERNAL_H
+#define _GNU_SOURCE
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "gc.h"
 
+#define THREAD_MAXNUM 30
 #define PTR_MAP_SIZE 64
 #define HASH(ptr) ((uintptr_t) ptr >> 3)
 
@@ -23,7 +26,8 @@ struct __gc_list {
 typedef struct __gc_list gc_list_t;
 
 struct __gc {
-    void *stack_start;
+    void *stack_start[THREAD_MAXNUM];
+    size_t stack_size[THREAD_MAXNUM];
     gc_list_t *ptr_map[PTR_MAP_SIZE];
     size_t ptr_num;
     size_t limit;

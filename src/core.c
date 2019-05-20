@@ -1,21 +1,35 @@
 #include "gc_internal.h"
 
-gc_t __gc_object = (gc_t){.ref_count = 0};
+gc_t __gc_object = (gc_t){.stack_start = {NULL},
+                          .ptr_map = {NULL},
+                          .ptr_num = 0,
+                          .ref_count = 0,
+                          .min = UINTPTR_MAX,
+                          .max = 0,
+                          .globals = NULL};
 
-void gc_init(void *ptr, size_t limit)
+void gc_init(size_t limit)
 {
-    if (__gc_object.ref_count) {
-        __gc_object.ref_count++;
+    if(__gc_object.ref_count == THREAD_MAXNUM){
         return;
     }
-    __gc_object = (gc_t){.stack_start = ptr,
-                         .ptr_map = {NULL},
-                         .ptr_num = 0,
-                         .ref_count = 1,
-                         .limit = limit,
-                         .min = UINTPTR_MAX,
-                         .max = 0,
-                         .globals = NULL};
+    if(__gc_object.ref_count == 0){
+        __gc_object.limit = limit;
+    }
+    pthread_attr_t attr;
+    void * stackaddr;
+    size_t stacksize;
+
+    pthread_getattr_np(pthread_self(), &attr);
+    pthread_attr_getstack( &attr, &stackaddr, &stacksize );
+
+    for(int i = __gc_object.ref_count; ; i = (i + 1) % THREAD_MAXNUM){
+        if(!__gc_object.stack_start[i]){
+            __gc_object.stack_start[i] = (uintptr_t)stackaddr;
+	    __gc_object.stack_size[i] = stacksize;
+        }
+    }
+    __gc_object.ref_count++;
 }
 
 static inline void swap_ptr(uint8_t **a, uint8_t **b)

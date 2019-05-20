@@ -32,8 +32,12 @@ gc_list_t *gc_ptr_index(uintptr_t ptr)
 
 void gc_mark_stack(void)
 {
-    uint8_t tmp;
-    gc_mark(__gc_object.stack_start, &tmp);
+    //uint8_t tmp;
+    for(int i=0; i < THREAD_MAXNUM; i++){
+        if(!__gc_object.stack_start[i]){
+            gc_mark(__gc_object.stack_start[i], __gc_object.stack_start[i] + __gc_object.stack_size[i]);
+        }
+    }
     for (gc_list_t *e = __gc_object.globals; e; e = e->next) {
         gc_mark((uint8_t *) (e->data.start),
                 (uint8_t *) (e->data.start + e->data.size));
